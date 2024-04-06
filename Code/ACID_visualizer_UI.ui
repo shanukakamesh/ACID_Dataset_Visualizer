@@ -383,6 +383,33 @@
          </property>
         </widget>
        </item>
+       <item row="2" column="6" colspan="2">
+        <widget class="QTextBrowser" name="txtCaptions">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="readOnly">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QPushButton" name="btnNext">
+         <property name="text">
+          <string>Next Image</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="7">
+        <widget class="QPushButton" name="btnShowImage">
+         <property name="text">
+          <string>Show Image and Annotations</string>
+         </property>
+        </widget>
+       </item>
        <item row="2" column="0" colspan="4">
         <widget class="QGraphicsView" name="graphicsImageDisplay">
          <property name="sizePolicy">
@@ -393,7 +420,61 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="4">
+       <item row="3" column="0" colspan="8">
+        <widget class="QGraphicsView" name="graphicsViewLegend">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>40</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="5">
+        <widget class="QSlider" name="sliderPenSize">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="minimum">
+          <number>10</number>
+         </property>
+         <property name="maximum">
+          <number>50</number>
+         </property>
+         <property name="sliderPosition">
+          <number>20</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="4">
+        <widget class="QLabel" name="lblPenSize">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>    Pen size</string>
+         </property>
+         <property name="indent">
+          <number>-1</number>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="4" colspan="2">
         <widget class="QGraphicsView" name="graphicsImageDisplay2">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -411,49 +492,6 @@
           <size>
            <width>16777215</width>
            <height>16777215</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QPushButton" name="btnNext">
-         <property name="text">
-          <string>Next Image</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="6">
-        <widget class="QPushButton" name="btnShowImage">
-         <property name="text">
-          <string>Show Image and Annotations</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="5" colspan="2">
-        <widget class="QTextBrowser" name="txtCaptions">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>1</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="readOnly">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0" colspan="7">
-        <widget class="QGraphicsView" name="graphicsViewLegend">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>40</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>40</height>
           </size>
          </property>
         </widget>

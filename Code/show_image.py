@@ -1,9 +1,9 @@
 import sys
 import os
 from ACID_dataset_visualizer import Ui_MainWindow
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsScene, QGraphicsPixmapItem, QGraphicsTextItem
-from PyQt6.QtGui import QPixmap, QStandardItemModel, QStandardItem, QPen, QColor, QFont, QBrush
-from PyQt6.QtCore import Qt, QRectF
+from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsScene, QGraphicsPixmapItem, QGraphicsTextItem, QSlider
+from PyQt6.QtGui import QPixmap, QStandardItemModel, QStandardItem, QPen, QColor, QFont, QPainterPath
+from PyQt6.QtCore import Qt, QPointF
 import json
 import xml.etree.ElementTree as ET
 
@@ -21,7 +21,14 @@ class showImage(QMainWindow):
         self.object_detetction = False
         self.instance_segmentation = False
         self.bbox_data = {}
-        self.segmentation_data = {}
+        self.segmentation_dict = {}
+        self.image_id_info = {}
+        self.category_id_info = {}
+        self.penSize = 10
+
+        self.scene = QGraphicsScene()
+        self.scene2 = QGraphicsScene()
+        self.class_legend_scene = QGraphicsScene()
 
         # Connect the button clicked signal to a slot
         self.ui.btnImagePath.clicked.connect(self.browse_image_folder)  
@@ -50,11 +57,15 @@ class showImage(QMainWindow):
         self.ui.frameAnnotation.setMaximumHeight(40)
         self.ui.graphicsViewLegend.setMinimumHeight(0)
         self.ui.graphicsViewLegend.setMaximumHeight(0)
+        self.ui.lblPenSize.setMaximumWidth(0)
+        self.ui.sliderPenSize.setMaximumWidth(0)
 
         self.ui.checkBoxCaptioning.stateChanged.connect(self.checkbox_captioning_changed)
 
         self.ui.comboDetectionSegmentation.currentIndexChanged.connect(self.combo_detetction_segmentation_changed)
         self.ui.graphicsImageDisplay2.setMaximumWidth(0)
+
+        self.ui.sliderPenSize.valueChanged.connect(self.updatePenSize)
 
         self.legend_data = {
             'dozer': QColor(255, 0, 0, 255),  # Red
@@ -69,8 +80,26 @@ class showImage(QMainWindow):
             'tower_crane': QColor(0, 0, 0, 255)  # Dark Cyan
         }
 
+        self.legend_data_segmentation = {
+            'dozer': QColor(255, 0, 0, 255),  # Red
+            'backhoe_loader': QColor(0, 255, 135, 255),  # Green
+            'wheel_loader': QColor(0, 0, 255, 255),  # Blue
+            'excavator': QColor(250, 210, 20, 255),  # Orange
+            'dump_truck': QColor(0, 255, 255, 255),  # Cyan
+            'grader': QColor(255, 0, 200, 255),  # Magenta
+            'compactor': QColor(168, 0, 193, 255),  # Dark Red
+            'mobile_crane': QColor(60, 170, 30, 255),  # Dark Green
+            'cement_truck': QColor(135, 70, 60, 255),  # Dark Orange
+            'tower_crane': QColor(0, 0, 0, 255),  # Dark Cyan
+            'concrete_mixer_truck': QColor(225, 100, 0, 255)
+        }
+
         # show the login window
         self.show()
+
+    def updatePenSize(self, value):
+        self.penSize = value
+        self.display_image()
 
     def browse_image_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
@@ -103,6 +132,7 @@ class showImage(QMainWindow):
             #VOC format
             folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
             if folder_path:
+                self.enable_or_disable_buttons(False)
                 # If a folder is selected, update the text in the txtImagePath widget
                 self.ui.txtAnnotationPathDetectionSegmentation.setText(folder_path)
                 for filename in os.listdir(folder_path):
@@ -131,6 +161,7 @@ class showImage(QMainWindow):
 
                             # Store bounding box data in the dictionary
                             self.bbox_data[image_filename].append({'class': obj_name, 'bbox': (xmin, ymin, xmax, ymax)})
+                self.enable_or_disable_buttons(True)
             
         if self.instance_segmentation:
             #COCO format
@@ -140,6 +171,34 @@ class showImage(QMainWindow):
                 # If a folder is selected, update the text in the txtImagePath widget
                 self.enable_or_disable_buttons(False)
                 self.ui.txtAnnotationPathDetectionSegmentation.setText(file_path)
+                with open(file_path, "r") as file:
+                    data = json.load(file)
+                self.segmentation_dict = {}
+                self.image_id_info = {}
+                self.category_id_info = {}
+                for image in data["images"]:
+                    self.image_id_info[image["file_name"].split("/")[1]] = image["id"]
+                for category in data["categories"]:
+                    self.category_id_info[category["id"]] = category["name"]
+                for annotation in data["annotations"]:
+                    annotation_info = {
+                        "id": annotation["id"],
+                        "iscrowd": annotation["iscrowd"],
+                        "category_id": annotation["category_id"],
+                        "area": annotation["area"],
+                        "bbox": annotation["bbox"],
+                        "segmentation": annotation["segmentation"]
+                    }
+                    
+                    # Get the image ID
+                    image_id = annotation["image_id"]
+                    
+                    # Check if the image ID exists in the segmentation dictionary
+                    if image_id not in self.segmentation_dict:
+                        self.segmentation_dict[image_id] = []
+                    
+                    # Append annotation info to the segmentation dictionary
+                    self.segmentation_dict[image_id].append(annotation_info)
 
                 self.enable_or_disable_buttons(True)
     
@@ -159,18 +218,17 @@ class showImage(QMainWindow):
 
     def display_image(self):
         image_path = self.ui.txtImagePath.text() + '/' + self.ui.txtImageName.text() + '.' + self.ui.comboImageType.currentText().lower()
-        pixmap = QPixmap(image_path)
         self.scene = QGraphicsScene()
+        pixmap = QPixmap(image_path)
         item = QGraphicsPixmapItem(pixmap)
         self.scene.addItem(item)
         self.ui.graphicsImageDisplay.setScene(self.scene)
         self.ui.graphicsImageDisplay.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         if self.object_detetction and self.ui.txtImageName.text():
-            pixmap2 = QPixmap(image_path)
             self.scene2 = QGraphicsScene()
+            pixmap2 = QPixmap(image_path)
             item2 = QGraphicsPixmapItem(pixmap2)
             self.scene2.addItem(item2)
-
             self.class_legend_scene = QGraphicsScene()
             self.ui.graphicsViewLegend.setScene(self.class_legend_scene)
             
@@ -199,13 +257,62 @@ class showImage(QMainWindow):
                 label.setPos(xmin, ymin)
                 label.setDefaultTextColor(color)
                 font = QFont()
-                font.setPointSize(20)  # Change the font size as needed
+                font.setPointSize(self.penSize)  # Change the font size as needed
                 font.setBold(True)  # Make the font bold
                 label.setFont(font)
                 self.scene2.addItem(label)
 
             self.ui.graphicsImageDisplay2.setScene(self.scene2)
             self.ui.graphicsImageDisplay2.fitInView(self.scene2.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+        if self.instance_segmentation and self.ui.txtImageName.text():
+            self.scene2 = QGraphicsScene()
+            pixmap2 = QPixmap(image_path)
+            item2 = QGraphicsPixmapItem(pixmap2)
+            self.scene2.addItem(item2)
+            self.class_legend_scene = QGraphicsScene()
+            self.ui.graphicsViewLegend.setScene(self.class_legend_scene)
+
+            for index, (key, value) in enumerate(self.legend_data_segmentation.items()):
+                self.add_legend_item(key, value, index*130)
+
+            image_id = self.image_id_info[self.ui.txtImageName.text()+ '.' + self.ui.comboImageType.currentText().lower()]
+            image_data = self.segmentation_dict[image_id]
+            for data in image_data:
+                class_name = self.category_id_info[data["category_id"]]
+                color = self.legend_data_segmentation[class_name]
+
+                xmin, ymin, width, height = data["bbox"]
+
+                # Draw bounding box rectangle on the image
+                pen = QPen(color)
+                pen.setWidth(5)
+                self.scene2.addRect(xmin, ymin, width, height, pen)
+
+                # Draw segmentation mask
+                segmentation = data["segmentation"]
+                path = QPainterPath()
+                start_point = QPointF(segmentation[0][0], segmentation[0][1])  # Start from the first point
+                path.moveTo(start_point)
+                for i in range(2, len(segmentation[0]), 2):
+                    x = segmentation[0][i]
+                    y = segmentation[0][i + 1]
+                    path.lineTo(QPointF(x, y))
+                path.lineTo(QPointF(segmentation[0][0], segmentation[0][1]))  # Close the path
+                self.scene2.addPath(path, pen)
+
+                label_text = class_name
+                label = QGraphicsTextItem(label_text)
+                label.setPos(xmin, ymin)
+                label.setDefaultTextColor(color)
+                font = QFont()
+                font.setPointSize(self.penSize)  # Change the font size as needed
+                font.setBold(True)  # Make the font bold
+                label.setFont(font)
+                self.scene2.addItem(label)
+            self.ui.graphicsImageDisplay2.setScene(self.scene2)
+            self.ui.graphicsImageDisplay2.fitInView(self.scene2.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+                
+
 
     def populate_image_list(self, folder_path):
         if folder_path:
@@ -288,6 +395,9 @@ class showImage(QMainWindow):
     
     def combo_detetction_segmentation_changed(self, index):
         self.ui.txtAnnotationPathDetectionSegmentation.setText('')
+        self.scene.clear()
+        self.scene2.clear()
+        self.class_legend_scene.clear()
         if index == 0:
             self.ui.lblAnnotationPathDetectionSegmentation.setVisible(False)
             self.ui.txtAnnotationPathDetectionSegmentation.setVisible(False)
@@ -298,8 +408,12 @@ class showImage(QMainWindow):
             self.ui.graphicsViewLegend.setMinimumHeight(0)
             self.ui.graphicsViewLegend.setMaximumHeight(0)
             self.ui.graphicsImageDisplay2.setMaximumWidth(0)
-            self.scene2.clear()
-            self.class_legend_scene.clear()
+            self.ui.lblPenSize.setMaximumWidth(0)
+            self.ui.sliderPenSize.setMaximumWidth(0)
+            self.segmentation_dict = {}
+            self.image_id_info = {}
+            self.category_id_info = {}
+            self.bbox_data = {}
         else:
             self.ui.lblAnnotationPathDetectionSegmentation.setVisible(True)
             self.ui.txtAnnotationPathDetectionSegmentation.setVisible(True)
@@ -321,7 +435,9 @@ class showImage(QMainWindow):
                 self.ui.lblAnnotationPathDetectionSegmentation.setText('Annotation path for Object Detection')
                 self.object_detetction = True
                 self.instance_segmentation = False
-                self.segmentation_data = {}
+                self.segmentation_dict = {}
+                self.image_id_info = {}
+                self.category_id_info = {}
             else:
                 self.ui.lblAnnotationPathDetectionSegmentation.setText('Annotation path for Instance Segmentation')
                 self.instance_segmentation = True
@@ -330,6 +446,8 @@ class showImage(QMainWindow):
             self.ui.graphicsImageDisplay2.setMaximumWidth(self.ui.graphicsImageDisplay2.maximumHeight())
             self.ui.graphicsViewLegend.setMinimumHeight(40)
             self.ui.graphicsViewLegend.setMaximumHeight(40)
+            self.ui.lblPenSize.setMaximumWidth(self.ui.lblPenSize.maximumHeight())
+            self.ui.sliderPenSize.setMaximumWidth(self.ui.sliderPenSize.maximumHeight())
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
