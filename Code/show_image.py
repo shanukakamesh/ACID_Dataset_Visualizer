@@ -1,6 +1,6 @@
 import sys
 import os
-from ACID_dataset_visualizer import Ui_MainWindow
+from ACID_dataset_visualizer_UI import Ui_MainWindow
 from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsScene, QGraphicsPixmapItem, QGraphicsTextItem, QSlider
 from PyQt6.QtGui import QPixmap, QStandardItemModel, QStandardItem, QPen, QColor, QFont, QPainterPath
 from PyQt6.QtCore import Qt, QPointF
